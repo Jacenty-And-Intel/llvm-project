@@ -22,7 +22,8 @@ namespace {
 // Return the minimum scale representable in a given float type
 double getMinScale(Type expressedType) {
   auto floatType = cast<FloatType>(expressedType);
-  return APFloat::getSmallest(floatType.getFloatSemantics()).convertToDouble();
+  return APFloat::getLargest(floatType.getFloatSemantics(), /*Negative=*/true)
+      .convertToDouble();
 }
 
 // Return the maximum scale representable in a given float type
@@ -329,7 +330,7 @@ LogicalResult UniformQuantizedType::verifyInvariants(
   // Verify scale.
   double minScale = getMinScale(expressedType);
   double maxScale = getMaxScale(expressedType);
-  if (scale < minScale || scale > maxScale)
+  if (scale < minScale || scale > maxScale || std::isnan(scale))
     return emitError() << "scale out of expressed type range [" << minScale
                        << ", " << maxScale << "]";
 
@@ -398,7 +399,7 @@ LogicalResult UniformQuantizedPerAxisType::verifyInvariants(
   double minScale = getMinScale(expressedType);
   double maxScale = getMaxScale(expressedType);
   for (double scale : scales) {
-    if (scale < minScale || scale > maxScale)
+    if (scale < minScale || scale > maxScale || std::isnan(scale))
       return emitError() << "scale out of expressed type range [" << minScale
                          << ", " << maxScale << "]";
   }
